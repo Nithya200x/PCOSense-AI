@@ -40,15 +40,15 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="glass-card fixed top-4 left-1/2 z-50 flex w-[95%] max-w-6xl -translate-x-1/2 items-center justify-between px-6 py-3">
-      
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
         <Image
           src="/logo.png"
           alt="PCOSense Logo"
-          width={32}
-          height={32}
+          width={48}
+          height={48}
           className="object-contain"
         />
         <span className="hidden text-xl font-bold gradient-text md:block">
@@ -93,19 +93,20 @@ export default function Navigation() {
         <div className="flex items-center gap-4">
           <Link
             href="/login"
-            className="font-medium text-blue-600 transition hover:text-blue-700"
+            className="text-sm font-semibold text-slate-600 transition hover:text-blue-600"
           >
             Log In
           </Link>
 
           <Link
             href="/signup"
-            className="rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 px-4 py-1.5 font-bold text-white transition-all hover:shadow-lg"
+            className="rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
           >
             Sign Up
           </Link>
         </div>
       )}
+      </div>
     </nav>
   );
 }

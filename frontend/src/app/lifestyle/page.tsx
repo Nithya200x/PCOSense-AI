@@ -2,7 +2,7 @@ import { Apple, Dumbbell, Moon, Droplets, CheckSquare } from "lucide-react";
 
 export default function LifestyleEngine() {
   return (
-    <div className="flex-1 p-8 pt-32 max-w-6xl mx-auto w-full">
+    <div className="flex-1 p-8 pt-8 max-w-6xl mx-auto w-full">
       <header className="mb-10 text-center">
         <h1 className="text-4xl font-bold text-slate-800">Personalized Lifestyle Engine</h1>
         <p className="text-slate-500 mt-3 max-w-2xl mx-auto">

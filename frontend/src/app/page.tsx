@@ -3,7 +3,7 @@ import { ArrowRight, Activity, ShieldCheck, BrainCircuit, Mic } from "lucide-rea
 
 export default function Home() {
   return (
-    <main className="flex-1 flex flex-col items-center justify-center p-8 text-center pt-32 pb-20">
+    <main className="flex-1 flex flex-col items-center justify-center p-8 text-center pt-8 pb-20">
       <div className="max-w-4xl w-full animate-slide-up space-y-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel text-sm font-medium text-blue-700 mb-4">
           <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
