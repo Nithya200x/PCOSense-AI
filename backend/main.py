@@ -27,6 +27,9 @@ elif os.getenv("OPENAI_API_KEY"):
 
 app = FastAPI(title="PCOSense AI Backend", version="1.0.0")
 
+@app.get("/")
+def root():
+    return {"message": "PCOSense API is running"}
 # Allow CORS for local Next.js frontend
 app.add_middleware(
     CORSMiddleware,
