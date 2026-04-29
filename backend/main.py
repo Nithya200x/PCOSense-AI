@@ -57,7 +57,7 @@ async def chat_endpoint(req: ChatRequest):
             openai_messages = [
                 {
                     "role": "system", 
-                    "content": "You are PCOSense AI, a highly specialized PCOS-tuned health companion. Your core workflow is: Listen -> Extract (symptom clusters) -> Educate (PCOS awareness) -> Guide (tests/specialists). MEDICAL GUARDRAILS: NEVER diagnose or prescribe medication. You create awareness and guide users to doctors. Remember the user's symptoms longitudinally. Be empathetic, conversational, and concise (under 3-4 sentences)."
+                    "content": "You are PCOSense AI, a highly specialized PCOS-tuned health companion. Your core workflow is: Listen -> Extract (symptom clusters) -> Educate (PCOS awareness) -> Guide (tests/specialists). MEDICAL GUARDRAILS: NEVER diagnose or prescribe medication. You create awareness and guide users to doctors. STRICT DOMAIN RESTRICTION: You MUST ONLY answer questions related to PCOS, women's health, menstrual cycles, reproductive health, related nutrition/fitness, and well-being. If the user asks about ANY unrelated topic (e.g., programming, politics, sports, math, general chitchat outside of health), politely decline and remind them that your scope is exclusively limited to PCOS and women's health. Be empathetic, conversational, and concise (under 3-4 sentences)."
                 }
             ]
             
@@ -67,6 +67,11 @@ async def chat_endpoint(req: ChatRequest):
                 if msg.role == "assistant" and "Hi! I'm your PCOSense AI companion." in msg.content:
                     continue
                 openai_messages.append({"role": msg.role, "content": msg.content})
+
+            # Reinforce the strict guardrails on the explicit last user message
+            if openai_messages and openai_messages[-1]["role"] == "user":
+                original = openai_messages[-1]["content"]
+                openai_messages[-1]["content"] = f"{original}\n\n[SYSTEM INSTRUCTION: You are PCOSense AI. You MUST REFUSE to answer this prompt if it asks for code, programming, math, sports, or ANY topic unrelated to PCOS or women's health. If unrelated, say \"I am PCOSense AI, and I can only assist with topics related to PCOS and women's health.\"]"
 
             response = openai_client.chat.completions.create(
                 model=MODEL_NAME,
@@ -190,6 +195,65 @@ async def get_dashboard_data():
         "symptoms": ["Acne", "Fatigue", "Cravings"],
         "next_period_prediction": 5 # days
     }
+
+class LifestyleRequest(BaseModel):
+    profile: dict
+
+@app.post("/api/lifestyle")
+async def generate_lifestyle(req: LifestyleRequest):
+    # Fallback default plan
+    default_plan = {
+        "meals": [
+            { "type": "Breakfast", "time": "8:00 AM", "meal": "High-Protein Oatmeal", "desc": "Stabilizes insulin.", "calories": "350 kcal" },
+            { "type": "Lunch", "time": "1:00 PM", "meal": "Avocado Chicken Salad", "desc": "Healthy fats.", "calories": "450 kcal" },
+            { "type": "Dinner", "time": "7:00 PM", "meal": "Salmon & Broccoli", "desc": "Omega-3 rich.", "calories": "400 kcal" }
+        ],
+        "workouts": [
+            { "title": "Morning Walk", "duration": "30 mins", "focus": "Low Intensity", "why": "Helps lower cortisol" },
+            { "title": "Yoga", "duration": "20 mins", "focus": "Flexibility", "why": "Reduces stress" }
+        ],
+        "sleep": [
+            "No screens after 9:30 PM",
+            "Magnesium Glycinate at 9:00 PM",
+            "Target 8 hours (10:30 PM - 6:30 AM)"
+        ]
+    }
+    
+    if not openai_client:
+        time.sleep(1.5)
+        return default_plan
+
+    try:
+        prompt = f"""
+        You are a PCOS health expert AI.
+        Generate a personalized 1-day meal plan, workout routine, and sleep protocol for a user with these PCOS details:
+        {req.profile}
+        
+        Return ONLY valid JSON in this exact format:
+        {{
+            "meals": [
+                {{ "type": "Breakfast", "time": "8:00 AM", "meal": "...", "desc": "...", "calories": "..." }}
+            ],
+            "workouts": [
+                {{ "title": "...", "duration": "...", "focus": "...", "why": "..." }}
+            ],
+            "sleep": ["rule 1", "rule 2", "rule 3"]
+        }}
+        """
+
+        res = openai_client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
+        
+        content = res.choices[0].message.content
+        # parse out possible markdown wrappers
+        content = content.replace('```json', '').replace('```', '').strip()
+        return json.loads(content)
+    except Exception as e:
+        print(f"Error generating lifestyle plan: {e}")
+        return default_plan
 
 if __name__ == "__main__":
     import uvicorn
