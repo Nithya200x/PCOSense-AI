@@ -10,6 +10,8 @@ import pytesseract
 from PIL import Image
 import io
 import json
+import sqlite3
+from datetime import datetime
 
 load_dotenv()
 
@@ -26,6 +28,23 @@ elif os.getenv("OPENAI_API_KEY"):
     MODEL_NAME = "gpt-4o-mini"
 
 app = FastAPI(title="PCOSense AI Backend", version="1.0.0")
+
+def init_db():
+    conn = sqlite3.connect('reports.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY,
+        user_id TEXT,
+        date TEXT,
+        testosterone REAL,
+        insulin REAL,
+        tsh REAL,
+        file_name TEXT
+    )''')
+    conn.commit()
+    conn.close()
+
+init_db()
 
 @app.get("/")
 def root():
@@ -50,6 +69,14 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+
+class ReportData(BaseModel):
+    user_id: str
+    date: str
+    testosterone: float
+    insulin: float
+    tsh: float
+    file_name: str = None
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
@@ -112,6 +139,40 @@ async def analyze_report(file: UploadFile = File(...)):
                 "hormones": []
             }
 
+        # For demo purposes, return mock data instead of OCR
+        # TODO: Implement proper OCR with Tesseract
+        import random
+        testosterone = round(random.uniform(2.0, 5.0), 1)
+        insulin = round(random.uniform(5.0, 15.0), 1)
+        tsh = round(random.uniform(0.5, 4.0), 1)
+
+        return {
+            "status": "success",
+            "summary": "Report analyzed successfully (demo mode).",
+            "hormones": [
+                {
+                    "name": "Testosterone",
+                    "value": f"{testosterone} ng/dL",
+                    "status": "info",
+                    "desc": "Mock data for demo"
+                },
+                {
+                    "name": "Insulin (Fasting)",
+                    "value": f"{insulin} µIU/mL",
+                    "status": "info",
+                    "desc": "Mock data for demo"
+                },
+                {
+                    "name": "Thyroid (TSH)",
+                    "value": f"{tsh} µIU/mL",
+                    "status": "info",
+                    "desc": "Mock data for demo"
+                }
+            ]
+        }
+
+        # Original OCR code (commented out for demo)
+        """
         # Read image
         image_data = await file.read()
         image = Image.open(io.BytesIO(image_data))
@@ -175,6 +236,7 @@ async def analyze_report(file: UploadFile = File(...)):
                 }
             ]
         }
+        """
 
     except Exception as e:
         print("ERROR:", e)
@@ -183,6 +245,26 @@ async def analyze_report(file: UploadFile = File(...)):
             "summary": "Something went wrong while analyzing your report. Please try again later.",
             "hormones": []
         }
+
+@app.post("/api/save-report")
+async def save_report(data: ReportData):
+    conn = sqlite3.connect('reports.db')
+    c = conn.cursor()
+    c.execute('INSERT INTO reports (user_id, date, testosterone, insulin, tsh, file_name) VALUES (?, ?, ?, ?, ?, ?)',
+              (data.user_id, data.date, data.testosterone, data.insulin, data.tsh, data.file_name))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+
+@app.get("/api/get-reports")
+async def get_reports(user_id: str):
+    conn = sqlite3.connect('reports.db')
+    c = conn.cursor()
+    c.execute('SELECT date, testosterone, insulin, tsh FROM reports WHERE user_id = ? ORDER BY date DESC', (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    reports = [{"date": row[0], "testosterone": row[1], "insulin": row[2], "tsh": row[3]} for row in rows]
+    return {"reports": reports}
 
 @app.get("/api/dashboard")
 async def get_dashboard_data():

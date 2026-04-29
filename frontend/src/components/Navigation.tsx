@@ -8,6 +8,7 @@ import {
   MessageSquare,
   FileText,
   HeartPulse,
+  History,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -31,6 +32,11 @@ export default function Navigation() {
       href: "/report",
       label: "Analyzer",
       icon: FileText,
+    },
+    {
+      href: "/history",
+      label: "History",
+      icon: History,
     },
     {
       href: "/lifestyle",
