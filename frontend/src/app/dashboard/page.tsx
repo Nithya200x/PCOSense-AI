@@ -1,5 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { database } from "@/lib/firebase";
+import { ref, get, set } from "firebase/database";
 import { Activity, AlertCircle, Calendar, Droplets, Flame, Pill, TrendingUp } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
@@ -13,32 +17,153 @@ const cycleData = [
 ];
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [formData, setFormData] = useState({
+    age: "",
+    weight: "",
+    height: "",
+    avgCycleLength: "",
+    symptoms: ""
+  });
+
+  useEffect(() => {
+    if (user) {
+      const profileRef = ref(database, `users/${user.uid}/profile`);
+      get(profileRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          setProfile(snapshot.val());
+        }
+        setLoading(false);
+      });
+    }
+  }, [user]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (user) {
+      setLoading(true);
+      const profileRef = ref(database, `users/${user.uid}/profile`);
+      await set(profileRef, formData);
+      setProfile(formData);
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen pt-24">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex-1 p-8 pt-32 max-w-2xl mx-auto w-full animate-fade-in">
+        <div className="glass-card p-8 rounded-3xl border border-white/40 shadow-xl bg-white/60 backdrop-blur-md">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome to PCOSense AI ✨</h1>
+          <p className="text-slate-500 mb-8">Before we prepare your dashboard, let's personalize your health insights.</p>
+          
+          <form onSubmit={handleSaveProfile} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
+                <input
+                  type="number"
+                  value={formData.age}
+                  onChange={(e) => setFormData({...formData, age: e.target.value})}
+                  className="w-full p-3 rounded-xl bg-white/80 border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  placeholder="e.g. 24"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Weight (kg)</label>
+                <input
+                  type="number"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                  className="w-full p-3 rounded-xl bg-white/80 border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  placeholder="e.g. 65"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Height (cm)</label>
+                <input
+                  type="number"
+                  value={formData.height}
+                  onChange={(e) => setFormData({...formData, height: e.target.value})}
+                  className="w-full p-3 rounded-xl bg-white/80 border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  placeholder="e.g. 165"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Avg Cycle Length (days)</label>
+                <input
+                  type="number"
+                  value={formData.avgCycleLength}
+                  onChange={(e) => setFormData({...formData, avgCycleLength: e.target.value})}
+                  className="w-full p-3 rounded-xl bg-white/80 border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  placeholder="e.g. 32"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Key Symptoms (comma separated)</label>
+              <textarea
+                value={formData.symptoms}
+                onChange={(e) => setFormData({...formData, symptoms: e.target.value})}
+                className="w-full p-3 rounded-xl bg-white/80 border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                placeholder="e.g. Irregular periods, acne, fatigue"
+                rows={3}
+                required
+              />
+            </div>
+            
+            <button
+              type="submit"
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all cursor-pointer z-50 relative"
+            >
+              Complete Setup & View Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 p-8 pt-32 max-w-7xl mx-auto w-full animate-fade-in">
+    <div className="flex-1 p-8 pt-10 max-w-7xl mx-auto w-full animate-fade-in">
       <header className="mb-10">
         <h1 className="text-4xl font-bold text-slate-800">Your Health Overview</h1>
-        <p className="text-slate-500 mt-2">Welcome back. Here is your personalized AI health breakdown.</p>
+        <p className="text-slate-500 mt-2">Welcome back. Here is your personalized AI health breakdown based on your profile.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <ScoreCard 
           title="PCOS Risk Score" 
-          value="High (78%)" 
-          trend="+5% from last month" 
-          icon={<AlertCircle className="text-red-500" />} 
-          color="border-l-4 border-red-500" 
+          value="Tracking" 
+          trend="Based on your detailed profile" 
+          icon={<AlertCircle className="text-amber-500" />} 
+          color="border-l-4 border-amber-500" 
         />
         <ScoreCard 
           title="Cycle Regularity" 
-          value="Irregular" 
-          trend="Avg 36 days" 
+          value={profile.avgCycleLength ? `Avg ${profile.avgCycleLength} days` : "Irregular"}
+          trend="From your provided details" 
           icon={<Calendar className="text-blue-500" />} 
           color="border-l-4 border-blue-500" 
         />
         <ScoreCard 
-          title="Symptom Intensity" 
-          value="Moderate" 
-          trend="Acne, Fatigue" 
+          title="Symptom Focus" 
+          value="Monitored" 
+          trend={profile.symptoms ? profile.symptoms.substring(0, 30) + (profile.symptoms.length > 30 ? "..." : "") : "Acne, Fatigue"}
           icon={<Activity className="text-purple-500" />} 
           color="border-l-4 border-purple-500" 
         />
@@ -90,7 +215,7 @@ export default function Dashboard() {
             <InsightItem 
               icon={<Pill size={16} className="text-emerald-500" />}
               title="Supplement Reminder"
-              desc="Don't forget your Inositol today for insulin regulation."
+              desc="Don't forget your daily supplements."
             />
           </div>
           <button className="mt-4 w-full py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition-colors">

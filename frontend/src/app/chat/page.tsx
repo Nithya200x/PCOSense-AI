@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send, Bot, User, Mic, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { database } from "@/lib/firebase";
+import { ref, get, set, push } from "firebase/database";
 
 export default function ChatAssistant() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState([
     { role: "assistant", content: "Hi! I'm your PCOSense AI companion. How are you feeling today? You can ask me about your symptoms, diet, or track your cycle." }
   ]);
@@ -11,14 +15,33 @@ export default function ChatAssistant() {
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
+  // Load chat history for the user from Firebase
+  useEffect(() => {
+    if (user) {
+      const chatRef = ref(database, `users/${user.uid}/chats`);
+      get(chatRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          setMessages(snapshot.val());
+        }
+      });
+    }
+  }, [user]);
+
+  // Persist messages whenever they change
+  useEffect(() => {
+    if (user && messages.length > 1) { // length > 1 prevents overwriting with default array if db fetch is delayed
+       const chatRef = ref(database, `users/${user.uid}/chats`);
+       set(chatRef, messages);
+    }
+  }, [messages, user]);
+
   const startListening = () => {
     if (!("webkitSpeechRecognition" in window)) {
       alert("Voice recognition is not supported in this browser. Please use Chrome.");
       return;
     }
     
-    // @ts-expect-error webkitSpeechRecognition is not in standard types
-    const SpeechRecognition = window.webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
@@ -29,7 +52,7 @@ export default function ChatAssistant() {
     recognition.onerror = () => setIsListening(false);
 
     recognition.onresult = (event: { results: Array<Array<{ transcript: string }>> }) => {
-      const transcript = event.results[0][0].transcript;
+      const { transcript } = event.results[0][0];
       setInput(prev => (prev + " " + transcript).trim());
     };
 
@@ -67,17 +90,17 @@ export default function ChatAssistant() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-8 pt-32 max-w-4xl mx-auto w-full h-screen">
+    <div className="flex-1 flex flex-col pt-32 p-4 md:p-8 max-w-4xl mx-auto w-full h-screen bg-transparent">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-          <Bot className="text-blue-500" size={32} />
+        <h1 className="text-3xl font-bold flex items-center text-slate-800 gap-3">
+          <Bot size={32} className="text-blue-500" />
           AI Assistant
         </h1>
         <p className="text-slate-500 mt-2">Chat or use voice to log symptoms and get personalized guidance.</p>
       </header>
 
       <div className="flex-1 glass-card overflow-hidden flex flex-col mb-4">
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
