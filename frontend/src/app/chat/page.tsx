@@ -70,11 +70,14 @@ export default function ChatAssistant() {
 
     try {
       // Connect to FastAPI backend
-      const response = await fetch("http://localhost:8001/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages })
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/chat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: updatedMessages })
+        }
+      );
       const data = await response.json();
       
       if (!response.ok || !data.reply) {

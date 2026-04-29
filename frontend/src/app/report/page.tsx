@@ -16,10 +16,13 @@ export default function ReportAnalyzer() {
       const formData = new FormData();
       formData.append("file", file);
       
-      const response = await fetch("http://localhost:8001/api/analyze-report", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/analyze-report`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
       
       if (!response.ok) {
         throw new Error("Invalid response from server");
