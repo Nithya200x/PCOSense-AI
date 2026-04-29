@@ -100,58 +100,86 @@ async def chat_endpoint(req: ChatRequest):
 
 @app.post("/api/analyze-report")
 async def analyze_report(file: UploadFile = File(...)):
-    # If we have OpenAI and an image file, use OCR + LLM
-    if openai_client and file.content_type.startswith("image/"):
-        try:
-            # 1. OCR Extraction using pytesseract
-            image_data = await file.read()
-            image = Image.open(io.BytesIO(image_data))
-            extracted_text = pytesseract.image_to_string(image)
-            
-            # 2. LLM Parsing
-            prompt = f"""
-            You are a medical report analyzer. Extract the following from this text:
-            - A concise summary of the results (especially regarding hormones/PCOS).
-            - A list of hormones with their name, value, status ("normal" or "high" or "low"), and a short description.
-            Respond in JSON format matching this schema:
-            {{
-                "summary": "...",
-                "hormones": [
-                    {{"name": "...", "value": "...", "status": "...", "desc": "..."}}
-                ]
-            }}
-
-            Extracted Text:
-            {extracted_text}
-            """
-            
-            response = openai_client.chat.completions.create(
-                model=MODEL_NAME,
-                response_format={"type": "json_object"},
-                messages=[{"role": "system", "content": prompt}]
-            )
-            
-            result = json.loads(response.choices[0].message.content)
+    try:
+        # Check file type
+        if not file.content_type.startswith("image/"):
             return {
-                "status": "success",
-                "summary": result.get("summary", "Analysis complete."),
-                "hormones": result.get("hormones", [])
+                "status": "error",
+                "summary": "Unsupported file format. Please upload an image of the report.",
+                "hormones": []
             }
-        except Exception as e:
-            print(f"OCR/LLM Error: {e}")
-            pass # Fallback to simulated data below
 
-    # Simulated OCR and LLM extraction fallback
-    time.sleep(2)
-    return {
-        "status": "success",
-        "summary": "Your report indicates a mild hormonal imbalance leaning towards hyperandrogenism and early signs of insulin resistance. Incorporating a low-GI diet and regular cardio could help manage these levels.",
-        "hormones": [
-          {"name": "Testosterone", "value": "65 ng/dL", "status": "high", "desc": "Elevated testosterone can cause acne and hair thinning."},
-          {"name": "Insulin (Fasting)", "value": "18 mIU/L", "status": "high", "desc": "Signs of insulin resistance. Focus on complex carbs."},
-          {"name": "Thyroid (TSH)", "value": "2.1 mIU/L", "status": "normal", "desc": "Thyroid levels are within the normal range."}
-        ]
-    }
+        # Read image
+        image_data = await file.read()
+        image = Image.open(io.BytesIO(image_data))
+
+        # OCR extraction
+        extracted_text = pytesseract.image_to_string(image)
+
+        print("----- OCR TEXT -----")
+        print(extracted_text)
+        print("--------------------")
+
+        # If OCR fails or empty
+        if not extracted_text.strip():
+            return {
+                "status": "error",
+                "summary": "Unable to read the report clearly. Please upload a higher-quality image.",
+                "hormones": []
+            }
+
+        # Simple extraction (you can improve later)
+        import re
+
+        def extract_value(label, text):
+            pattern = rf"{label}.*?(\d+\.?\d*)"
+            match = re.search(pattern, text, re.IGNORECASE)
+            return match.group(1) if match else None
+
+        testosterone = extract_value("Testosterone", extracted_text)
+        insulin = extract_value("Insulin", extracted_text)
+        tsh = extract_value("TSH", extracted_text)
+
+        # If key values missing → fail gracefully
+        if not any([testosterone, insulin, tsh]):
+            return {
+                "status": "error",
+                "summary": "We detected the report, but couldn't extract key hormone values reliably. Please try a clearer scan.",
+                "hormones": []
+            }
+
+        return {
+            "status": "success",
+            "summary": "Report analyzed successfully.",
+            "hormones": [
+                {
+                    "name": "Testosterone",
+                    "value": f"{testosterone or 'N/A'} ng/dL",
+                    "status": "info",
+                    "desc": "Extracted from report"
+                },
+                {
+                    "name": "Insulin (Fasting)",
+                    "value": f"{insulin or 'N/A'} µIU/mL",
+                    "status": "info",
+                    "desc": "Extracted from report"
+                },
+                {
+                    "name": "Thyroid (TSH)",
+                    "value": f"{tsh or 'N/A'} µIU/mL",
+                    "status": "info",
+                    "desc": "Extracted from report"
+                }
+            ]
+        }
+
+    except Exception as e:
+        print("ERROR:", e)
+        return {
+            "status": "error",
+            "summary": "Something went wrong while analyzing your report. Please try again later.",
+            "hormones": []
+        }
 
 @app.get("/api/dashboard")
 async def get_dashboard_data():
@@ -165,4 +193,5 @@ async def get_dashboard_data():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+    port = int(os.getenv("PORT") or 8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
