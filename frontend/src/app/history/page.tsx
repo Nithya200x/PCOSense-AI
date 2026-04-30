@@ -25,8 +25,8 @@ export default function HistoryPage() {
 
   const fetchReports = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/get-reports?user_id=${userId}`);
-      setReports(response.data.reports);
+      const response = await axios.get(`http://localhost:8001/api/get-reports?user_id=${userId}`);
+      setReports(response.data.reports || []);
     } catch (error) {
       console.error('Error fetching reports:', error);
     }
@@ -47,7 +47,7 @@ export default function HistoryPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const analyzeResponse = await axios.post('http://localhost:8000/api/analyze-report', formData, {
+      const analyzeResponse = await axios.post('http://localhost:8001/api/analyze-report', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -68,7 +68,7 @@ export default function HistoryPage() {
           file_name: file.name,
         };
 
-        await axios.post('http://localhost:8000/api/save-report', saveData);
+        await axios.post('http://localhost:8001/api/save-report', saveData);
         fetchReports(); // Refresh the list
         setFile(null);
       } else {

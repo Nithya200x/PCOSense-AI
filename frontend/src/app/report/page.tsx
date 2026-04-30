@@ -17,7 +17,7 @@ export default function ReportAnalyzer() {
       formData.append("file", file);
       
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/analyze-report`,
+        "http://localhost:8001/api/analyze-report",
         {
           method: "POST",
           body: formData,
@@ -72,7 +72,7 @@ export default function ReportAnalyzer() {
           <h3 className="text-xl font-bold text-slate-700 mb-2">
             {file ? file.name : "Click to upload report"}
           </h3>
-          <p className="text-slate-500 text-sm">Supports PDF, JPG, PNG up to 10MB</p>
+          <p className="text-slate-500 text-sm">Supports JPG, PNG up to 10MB</p>
           
           {file && (
             <button 

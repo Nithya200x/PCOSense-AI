@@ -55,6 +55,8 @@ export default function Navigation() {
           alt="PCOSense Logo"
           width={48}
           height={48}
+          style={{ width: "auto", height: "auto" }}
+          priority
           className="object-contain"
         />
         <span className="hidden text-xl font-bold gradient-text md:block">
