@@ -2,11 +2,15 @@
 
 import { useState } from "react";
 import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ReportAnalyzer() {
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<{ hormones: Array<{name: string, value: string, status: string, desc: string}>, summary: string } | null>(null);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
   const handleUpload = async () => {
     if (!file) return;
@@ -17,7 +21,7 @@ export default function ReportAnalyzer() {
       formData.append("file", file);
       
       const response = await fetch(
-        "http://localhost:8001/api/analyze-report",
+        `${API_URL}/api/analyze-report`,
         {
           method: "POST",
           body: formData,
@@ -33,9 +37,54 @@ export default function ReportAnalyzer() {
         hormones: data.hormones,
         summary: data.summary
       });
+
+      // Save report automatically to database if user is authenticated
+      if (user && data.status === "success") {
+        // Parse float values from strings
+        const extractNum = (label: string) => {
+          const match = data.hormones.find((h: any) => h.name.toLowerCase().includes(label.toLowerCase()));
+          if (!match || match.value === "-") return null;
+          const num = parseFloat(match.value.split(" ")[0]);
+          return isNaN(num) ? null : num;
+        };
+
+        const testosterone = extractNum("testosterone");
+        const lh = extractNum("lh") || extractNum("luteinizing");
+        const fsh = extractNum("fsh") || extractNum("follicle");
+        const tsh = extractNum("tsh") || extractNum("thyroid");
+        const insulin = extractNum("insulin");
+        const amh = extractNum("amh") || extractNum("müllerian") || extractNum("mullerian");
+        const prolactin = extractNum("prolactin");
+        const vitamin_d = extractNum("vitamin d");
+        const hba1c = extractNum("hba1c");
+        const glucose = extractNum("glucose");
+
+        const savePayload = {
+          user_id: user.uid,
+          date: new Date().toISOString().split("T")[0],
+          testosterone,
+          lh,
+          fsh,
+          tsh,
+          insulin,
+          amh,
+          prolactin,
+          vitamin_d,
+          hba1c,
+          glucose,
+          file_name: file.name,
+          summary: data.summary
+        };
+
+        await fetch(`${API_URL}/api/save-report`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(savePayload)
+        });
+      }
+
     } catch (error) {
       console.error("Failed to analyze report:", error);
-      // Fallback
       setResult({
         hormones: [
           { name: "Error", value: "-", status: "high", desc: "Could not connect to backend to analyze report." }
@@ -130,3 +179,4 @@ export default function ReportAnalyzer() {
     </div>
   );
 }
+

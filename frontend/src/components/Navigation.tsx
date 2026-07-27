@@ -10,6 +10,7 @@ import {
   HeartPulse,
   History,
   LogOut,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -22,6 +23,11 @@ export default function Navigation() {
       href: "/dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
+    },
+    {
+      href: "/tracker",
+      label: "Tracker",
+      icon: ClipboardList,
     },
     {
       href: "/chat",

@@ -61,6 +61,11 @@ export default function Footer() {
         </p>
       </div>
 
+      {/* Medical Disclaimer */}
+      <div className="border-t border-slate-100 py-4 text-center text-xs text-slate-400 px-6 max-w-4xl mx-auto leading-relaxed">
+        <strong>Disclaimer:</strong> PCOSense AI is built for PCOS awareness, lifestyle support, and educational guidance. It is explicitly <strong>not</strong> a diagnostic tool, clinical device, or medical provider. Always consult with a qualified healthcare professional or physician for diagnostic testing, medication management, and medical decisions.
+      </div>
+
       {/* Copyright */}
       <div className="border-t border-slate-100 py-3 text-center text-xs text-slate-400">
         © 2026 PCOSense AI. All rights reserved.

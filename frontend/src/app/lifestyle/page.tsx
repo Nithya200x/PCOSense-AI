@@ -12,6 +12,8 @@ export default function LifestyleEngine() {
   const [generating, setGenerating] = useState(false);
   const [data, setData] = useState<any>(null);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+
   useEffect(() => {
     if (user) {
       const dbRef = ref(database, `users/${user.uid}/lifestyle`);
@@ -31,8 +33,9 @@ export default function LifestyleEngine() {
       const profileRef = ref(database, `users/${user.uid}/profile`);
       const snap = await get(profileRef);
       const profile = snap.exists() ? snap.val() : {};
+      profile.user_id = user.uid; // Append user ID so the backend can fetch reports trends
 
-      const response = await fetch("http://localhost:8000/api/lifestyle", {
+      const response = await fetch(`${API_URL}/api/lifestyle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile })
@@ -58,7 +61,7 @@ export default function LifestyleEngine() {
       <div className="flex-1 p-8 pt-24 max-w-6xl mx-auto w-full min-h-[calc(100vh-80px)] text-center">
         <h1 className="text-4xl font-bold mb-4 text-slate-800">Personalized Lifestyle Engine</h1>
         <p className="mb-8 opacity-80 max-w-lg mx-auto text-slate-600">We need to generate your personalized AI meal and workout plan based on your profile symptoms.</p>
-        <button onClick={generatePlan} className="bg-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-700 transition-colors shadow-md">
+        <button onClick={generatePlan} className="bg-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-700 transition-colors shadow-md cursor-pointer">
           Generate AI Plan
         </button>
       </div>
@@ -142,19 +145,24 @@ export default function LifestyleEngine() {
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1 text-slate-700">
-                  <span className="font-bold">Water Intake</span>
-                  <span className="font-bold text-slate-500">1.2 / 2.5 L</span>
+                  <span className="font-bold">Water Goal</span>
+                  <span className="font-bold text-slate-500">{data?.habits?.water_goal || "2.5 L"}</span>
                 </div>
-                <div className="h-2 w-full bg-slate-100 border border-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-teal-400 w-[48%] rounded-full"></div>
+                <div className="h-2 w-full bg-slate-100 border border-slate-200 rounded-full overflow-hidden mt-1">
+                  <div 
+                    className="h-full bg-teal-400 rounded-full transition-all duration-500" 
+                    style={{ width: data?.habits?.water_percent || "48%" }}
+                  ></div>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1 text-slate-700">
                   <span className="font-bold">Stress Level</span>
-                  <span className="font-bold text-orange-500">High</span>
+                  <span className="font-bold text-orange-500">{data?.habits?.stress_level || "Moderate"}</span>
                 </div>
-                <p className="text-xs text-slate-500 opacity-80 mt-2 italic">Recommendation: Try 10 mins of Box Breathing.</p>
+                <p className="text-xs text-slate-500 opacity-80 mt-2 italic">
+                  Recommendation: {data?.habits?.stress_recommendation || "Try 10 mins of Box Breathing."}
+                </p>
               </div>
             </div>
           </section>
@@ -183,3 +191,4 @@ function MealCard({ type, time, meal, desc, calories }: { type: string, time: st
     </div>
   );
 }
+
