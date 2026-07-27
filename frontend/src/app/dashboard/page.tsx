@@ -281,8 +281,6 @@ interface ScoreCardProps {
   color: string;
 }
 
-def_val: string = "";
-
 function ScoreCard({ title, value, trend, explanation, icon, color }: ScoreCardProps) {
   return (
     <div className={`glass-card p-6 ${color} relative overflow-hidden group`}>
